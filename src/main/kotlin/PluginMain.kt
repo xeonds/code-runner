@@ -1,5 +1,8 @@
 package xyz.xeonds.mirai.coderunner
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.event.GlobalEventChannel
@@ -17,17 +20,23 @@ object PluginMain : KotlinPlugin(JvmPluginDescription(
         """.trimIndent()
     )
 }) {
+    @OptIn(ExperimentalSerializationApi::class)
     override fun onEnable() {
         logger.info { "Code-Runner loaded" }
         //配置文件目录 "${dataFolder.absolutePath}/"
         val eventChannel = GlobalEventChannel.parentScope(this)
         eventChannel.subscribeAlways<GroupMessageEvent> {
             if (message.contentToString().startsWith("```")) {
-                group.sendMessage("代码运行功能开发中")
+                //code:二元数组，分别为语言标志和待执行代码
+                val code=message.contentToString().split("\n", limit = 2)
+                group.sendMessage(CodeRunner(code[0].replace("```",""),code[1]).run().toString())
             }
         }
         eventChannel.subscribeAlways<FriendMessageEvent> {
-            sender.sendMessage("暂不支持私聊运行")
+            if (message.contentToString().startsWith("```")) {
+                val code=message.contentToString().split("\n", limit = 2)
+                sender.sendMessage(CodeRunner(code[0].replace("```",""),code[1]).run().toString())
+            }
         }
     }
 }
